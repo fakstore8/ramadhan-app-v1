@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ramadhan Berkah Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #064e3b;
+            --secondary: #065f46;
+            --accent: #fbbf24;
+            --dark: #022c22;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--dark);
+            color: #f0fdf4;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .arabic { font-family: 'Amiri', serif; }
+
+        .ramadhan-gradient {
+            background: linear-gradient(180deg, #065f46 0%, #022c22 100%);
+        }
+
+        .card-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .card-glass:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.08); }
+
+        .nav-glass {
+            background: rgba(2, 44, 34, 0.98);
+            backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .tab-content { 
+            display: none; 
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            padding-bottom: 140px;
+        }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .juz-divider {
+            position: sticky;
+            top: 130px;
+            z-index: 30;
+            background: rgba(6, 78, 59, 0.98);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .active-juz { background: var(--accent) !important; color: var(--primary) !important; }
+
+        #toast-container {
+            position: fixed;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            width: 90%;
+            max-width: 400px;
+            pointer-events: none;
+        }
+
+        .toast-item {
+            background: #064e3b;
+            color: white;
+            padding: 16px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Audio visualizer simulation */
+        .audio-loading {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <!-- Header Tetap -->
+    <div class="sticky top-0 z-40 ramadhan-gradient pb-2">
+        <header class="p-6 pb-2">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex flex-col gap-1">
+                    <h1 class="text-2xl font-black text-yellow-400 tracking-tighter">RAMADHAN PRO</h1>
+                    <button onclick="toggleCitySearch()" class="flex items-center gap-2 text-[10px] text-green-300 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 w-fit">
+                        <i class="fas fa-location-arrow text-yellow-500"></i>
+                        <span id="loc-text" class="font-bold uppercase tracking-widest">Memuat Lokasi...</span>
+                    </button>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                    <button onclick="requestNotificationPermission()" id="notif-btn" class="text-[9px] bg-yellow-500/10 text-yellow-500 px-3 py-1.5 rounded-full border border-yellow-500/30 font-black animate-pulse">
+                        <i class="fas fa-bell mr-1"></i> IZIN NOTIF
+                    </button>
+                    <div class="text-right">
+                        <p id="hijri-date" class="text-[11px] font-black text-yellow-500 leading-none">-- --- ----</p>
+                        <p id="gregorian-date" class="text-[9px] opacity-40 font-bold uppercase mt-1">-- --- ----</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="city-search-box" class="hidden mb-4 scale-in">
+                <div class="flex gap-2 p-1.5 bg-black/20 rounded-2xl border border-white/10">
+                    <input type="text" id="city-input" placeholder="Cari Kota (Contoh: Lumajang)" class="flex-grow bg-transparent px-4 py-2 text-xs focus:outline-none text-white font-medium">
+                    <button onclick="manualSearch()" class="bg-yellow-500 text-emerald-950 px-5 py-2 rounded-xl text-xs font-black shadow-lg">CARI</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Tools Quran -->
+        <div id="quran-header-tools" class="px-5 hidden space-y-3 pb-2">
+             <div class="flex overflow-x-auto gap-2 no-scrollbar" id="juz-selector"></div>
+             <div class="relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
+                <input type="text" id="search-quran" onkeyup="filterSurah()" placeholder="Cari nama surah..." class="w-full bg-black/20 border border-white/10 rounded-2xl pl-10 pr-4 py-3.5 text-xs focus:outline-none focus:border-yellow-500/50 text-white">
+             </div>
+        </div>
+    </div>
+
+    <main class="px-5">
+        <!-- Tab: Beranda -->
+        <section id="tab-home" class="tab-content active space-y-5 pt-4">
+            <div class="card-glass p-6 rounded-[2.5rem] flex justify-between items-center bg-gradient-to-br from-emerald-800/30 to-transparent border-yellow-500/20">
+                <div>
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                        <p class="text-[10px] uppercase tracking-[0.2em] text-yellow-500 font-black">Sholat Berikutnya</p>
+                    </div>
+                    <h2 id="next-prayer-name" class="text-xl font-black text-white">--</h2>
+                    <p id="next-prayer-time" class="text-5xl font-black text-white tracking-tighter mt-1">--:--</p>
+                </div>
+                <div class="w-16 h-16 rounded-3xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 rotate-3">
+                    <i class="fas fa-clock text-yellow-500 text-2xl"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3" id="prayer-grid">
+                <!-- Diisi via JavaScript -->
+            </div>
+
+            <div class="card-glass p-6 rounded-[2rem] border-white/5">
+                <h3 class="text-[10px] font-black mb-5 text-yellow-400 uppercase tracking-widest text-center">Daily Ramadhan Checklist</h3>
+                <div class="flex justify-between gap-3">
+                    <div class="flex-1">
+                        <input type="checkbox" id="check-puasa" class="hidden" onchange="toggleTrack(this)">
+                        <label for="check-puasa" class="text-[9px] font-black py-4 block text-center rounded-2xl border border-white/10 bg-white/5 transition-all">PUASA</label>
+                    </div>
+                    <div class="flex-1">
+                        <input type="checkbox" id="check-tarawih" class="hidden" onchange="toggleTrack(this)">
+                        <label for="check-tarawih" class="text-[9px] font-black py-4 block text-center rounded-2xl border border-white/10 bg-white/5 transition-all">TARAWIH</label>
+                    </div>
+                    <div class="flex-1">
+                        <input type="checkbox" id="check-tilawah" class="hidden" onchange="toggleTrack(this)">
+                        <label for="check-tilawah" class="text-[9px] font-black py-4 block text-center rounded-2xl border border-white/10 bg-white/5 transition-all">TILAWAH</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Quran -->
+        <section id="tab-quran" class="tab-content pt-2">
+            <div id="surah-container" class="space-y-4">
+                <div class="py-20 text-center opacity-30">
+                    <i class="fas fa-circle-notch fa-spin text-3xl mb-4"></i>
+                    <p class="text-xs font-bold uppercase tracking-widest">Menyiapkan Mushaf Digital...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Doa -->
+        <section id="tab-dua" class="tab-content space-y-4 pt-4">
+            <div class="card-glass p-7 rounded-[2.5rem] border-l-[6px] border-yellow-500">
+                <div class="flex justify-between items-center mb-5">
+                    <h4 class="text-yellow-500 font-black text-[10px] uppercase tracking-widest">Niat Puasa</h4>
+                    <i class="fas fa-moon text-yellow-500/20"></i>
+                </div>
+                <p class="arabic text-right text-3xl leading-[4rem] text-white" dir="rtl">نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ هَذِهِ السَّنَةِ لِلَّهِ تَعَالَى</p>
+                <div class="mt-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <p class="text-[12px] text-white/70 leading-relaxed font-medium">"Nawaitu shauma ghadin 'an adaa'i fardhi syahri ramadhaana haadzihis sanati lillaahi ta'aalaa."</p>
+                </div>
+            </div>
+
+            <div class="card-glass p-7 rounded-[2.5rem] border-l-[6px] border-yellow-500">
+                <div class="flex justify-between items-center mb-5">
+                    <h4 class="text-yellow-500 font-black text-[10px] uppercase tracking-widest">Doa Berbuka</h4>
+                    <i class="fas fa-utensils text-yellow-500/20"></i>
+                </div>
+                <p class="arabic text-right text-3xl leading-[4rem] text-white" dir="rtl">اللَّهُمَّ لَكَ صُمْتُ وَبِكَ آمَنْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ</p>
+                <div class="mt-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <p class="text-[12px] text-white/70 leading-relaxed font-medium">"Allahumma laka shumtu wa bika aamantu wa 'alaa rizqika afthartu."</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Pembaca Quran -->
+    <div id="reader-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/98" onclick="closeReader()"></div>
+        <div class="absolute bottom-0 left-0 right-0 top-6 bg-emerald-950 rounded-t-[3rem] flex flex-col shadow-2xl border-t border-white/10">
+            <!-- Header Modal -->
+            <div class="p-6 flex justify-between items-center border-b border-white/5">
+                <div class="flex items-center gap-4">
+                    <div id="m-surah-num" class="w-12 h-12 rounded-2xl bg-yellow-500 flex items-center justify-center text-emerald-950 font-black text-lg">--</div>
+                    <div>
+                        <h3 id="m-surah-name" class="font-black text-xl text-white">Nama Surah</h3>
+                        <p id="m-surah-info" class="text-[10px] uppercase text-yellow-500/60 font-black tracking-widest mt-0.5">-- Ayat</p>
+                    </div>
+                </div>
+                <button onclick="closeReader()" class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-white/40 active:scale-90 transition-all">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Player Bar -->
+            <div class="px-6 py-5 bg-black/20 flex flex-col gap-4">
+                <div class="flex items-center gap-5">
+                    <button id="play-btn" class="text-yellow-500 text-5xl active:scale-90 transition-transform disabled:opacity-30">
+                        <i class="fas fa-play-circle"></i>
+                    </button>
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-white/20">Murottal Audio</p>
+                            <p id="audio-time" class="text-[10px] font-mono text-yellow-500">00:00 / 00:00</p>
+                        </div>
+                        <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden cursor-pointer relative" id="progress-container" onclick="seekAudio(event)">
+                            <div id="audio-progress" class="bg-yellow-500 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Konten Ayat -->
+            <div id="m-content" class="flex-grow overflow-y-auto p-7 space-y-12 pb-40 no-scrollbar">
+                <!-- Ayat dimuat di sini -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigasi Bawah -->
+    <nav class="fixed bottom-0 left-0 right-0 h-24 nav-glass flex items-center justify-around z-50 px-4">
+        <button onclick="switchTab('home')" class="nav-item flex flex-col items-center flex-1 text-yellow-500 transition-all duration-300">
+            <i class="fas fa-house-chimney-window text-xl mb-1.5"></i>
+            <span class="text-[9px] font-black uppercase tracking-[0.2em]">Home</span>
+        </button>
+        <button onclick="switchTab('quran')" class="nav-item flex flex-col items-center flex-1 text-white/20 transition-all duration-300">
+            <i class="fas fa-book-quran text-xl mb-1.5"></i>
+            <span class="text-[9px] font-black uppercase tracking-[0.2em]">Quran</span>
+        </button>
+        <button onclick="switchTab('dua')" class="nav-item flex flex-col items-center flex-1 text-white/20 transition-all duration-300">
+            <i class="fas fa-hands-praying text-xl mb-1.5"></i>
+            <span class="text-[9px] font-black uppercase tracking-[0.2em]">Doa</span>
+        </button>
+    </nav>
+
+    <audio id="main-audio"></audio>
+
+    <script>
+        const audio = document.getElementById('main-audio');
+        let allSurah = [];
+        let prayerTimings = {};
+        let currentCity = "Lumajang";
+        let lastNotification = "";
+
+        const juzMap = {
+            1:[1,2], 2:[2], 3:[2,3], 4:[3,4], 5:[4], 6:[4,5], 7:[5,6], 8:[6,7], 9:[7,8], 10:[8,9],
+            11:[9,10,11], 12:[11,12], 13:[12,13,14,15], 14:[15,16], 15:[17,18], 16:[18,19,20],
+            17:[21,22], 18:[23,24,25], 19:[25,26,27], 20:[27,28,29], 21:[29,30,31,32,33],
+            22:[33,34,35,36], 23:[36,37,38,39], 24:[39,40,41], 25:[42,43,44,45],
+            26:[46,47,48,49,50,51], 27:[51,52,53,54,55,56,57], 
+            28:[58,59,60,61,62,63,64,65,66], 29:[67,68,69,70,71,72,73,74,75,76,77],
+            30:[78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114]
+        };
+
+        window.onload = () => {
+            initLocation();
+            loadQuranList();
+            setupAudioEvents();
+            startPrayerClock();
+            updateDates();
+            renderJuzSelector();
+            
+            // Perbaikan Scroll Home: Pastikan tidak ada overflow yang terkunci
+            document.body.style.overflow = "auto";
+        };
+
+        // --- CORE: NOTIFIKASI & WAKTU ---
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                showToast("Browser tidak mendukung notifikasi.");
+                return;
+            }
+            Notification.requestPermission().then(perm => {
+                if (perm === "granted") {
+                    showToast("Notifikasi Adzan Berhasil Diaktifkan!", "check-circle");
+                    document.getElementById('notif-btn').classList.add('hidden');
+                }
+            });
+        }
+
+        function startPrayerClock() {
+            setInterval(() => {
+                const now = new Date();
+                const currentStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+                
+                if (Object.keys(prayerTimings).length > 0) {
+                    for (const [name, time] of Object.entries(prayerTimings)) {
+                        if (time === currentStr && lastNotification !== (name + time)) {
+                            triggerAdzan(name);
+                            lastNotification = name + time;
+                        }
+                    }
+                }
+                updateNextPrayerUI(currentStr);
+            }, 30000); // Cek setiap 30 detik
+        }
+
+        function triggerAdzan(name) {
+            const msg = `Waktunya Sholat ${name} untuk wilayah ${currentCity}.`;
+            showToast(msg, "bell");
+            if (Notification.permission === "granted") {
+                new Notification("Panggilan Adzan", { body: msg, icon: "https://cdn-icons-png.flaticon.com/512/2928/2928131.png" });
+            }
+        }
+
+        // --- CORE: AUDIO QURAN ---
+        function setupAudioEvents() {
+            const btn = document.getElementById('play-btn');
+            const prog = document.getElementById('audio-progress');
+            const time = document.getElementById('audio-time');
+
+            audio.onplay = () => btn.innerHTML = '<i class="fas fa-pause-circle"></i>';
+            audio.onpause = () => btn.innerHTML = '<i class="fas fa-play-circle"></i>';
+            audio.onwaiting = () => btn.innerHTML = '<div class="audio-loading"></div>';
+            audio.onplaying = () => btn.innerHTML = '<i class="fas fa-pause-circle"></i>';
+
+            audio.ontimeupdate = () => {
+                if (!audio.duration) return;
+                const pct = (audio.currentTime / audio.duration) * 100;
+                prog.style.width = pct + "%";
+                
+                const curM = Math.floor(audio.currentTime / 60);
+                const curS = Math.floor(audio.currentTime % 60);
+                const durM = Math.floor(audio.duration / 60) || 0;
+                const durS = Math.floor(audio.duration % 60) || 0;
+                time.innerText = `${curM}:${curS.toString().padStart(2,'0')} / ${durM}:${durS.toString().padStart(2,'0')}`;
+            };
+
+            audio.onerror = () => {
+                showToast("Server sibuk, mencoba jalur lain...", "exclamation-triangle");
+                const currentId = document.getElementById('m-surah-num').innerText;
+                // Jalur cadangan
+                audio.src = `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${currentId}.mp3`;
+                audio.play();
+            };
+        }
+
+        function seekAudio(e) {
+            if (!audio.duration) return;
+            const rect = document.getElementById('progress-container').getBoundingClientRect();
+        
